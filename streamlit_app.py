@@ -24,8 +24,6 @@ model.fit(X_train, y_train)
 
 # Evaluate the model (for debugging purposes)
 y_pred = model.predict(X_test)
-mse = mean_squared_error(y_test, y_pred)
-st.write(f'Mean Squared Error: {mse}')
 
 # Save the model
 joblib.dump(model, 'house_price_model.pkl')
