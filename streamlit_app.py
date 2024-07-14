@@ -1,151 +1,60 @@
-import streamlit as st
 import pandas as pd
-import math
-from pathlib import Path
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+import joblib
+import streamlit as st
+import numpy as np
 
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
-)
+# Load the dataset
+file_path = 'house_price_prediction_dataset.csv'
+df = pd.read_csv(file_path)
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+# Display the first few rows of the dataset (for debugging purposes)
+st.write("Dataset Preview:", df.head())
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+# Check for missing values (for debugging purposes)
+st.write("Missing Values:", df.isnull().sum())
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
+# Features and target variable
+X = df[['num_bedrooms', 'num_bathrooms', 'square_footage', 'age_of_house']]
+y = df[['price']]  # Assuming the target column is named 'price'
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
+# Split the data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
+# Train the model
+model = LinearRegression()
+model.fit(X_train, y_train)
 
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
+# Evaluate the model (for debugging purposes)
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+st.write(f'Mean Squared Error: {mse}')
 
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
+# Save the model
+joblib.dump(model, 'house_price_model.pkl')
+st.write("Model saved!")
 
-    return gdp_df
+# Load the trained model (for prediction)
+model = joblib.load('house_price_model.pkl')
 
-gdp_df = get_gdp_data()
+# Function to predict house price using the model
+def predict_price(bedrooms, bathrooms, square_footage, age):
+    features = np.array([[bedrooms, bathrooms, square_footage, age]])
+    price = model.predict(features)[0]
+    return price
 
-# -----------------------------------------------------------------------------
-# Draw the actual page
+# Streamlit app
+st.title('House Price Prediction')
 
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
+# Input fields
+bedrooms = st.number_input('Enter the number of bedrooms:', min_value=1, max_value=10, value=3)
+bathrooms = st.number_input('Enter the number of bathrooms:', min_value=1, max_value=10, value=2)
+square_footage = st.number_input('Enter the square footage:', min_value=300, max_value=10000, value=1500)
+age = st.number_input('Enter the age of the house:', min_value=0, max_value=100, value=20)
 
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[gdp_df['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[gdp_df['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+# Predict button
+if st.button('Predict House Price'):
+    price = predict_price(bedrooms, bathrooms, square_footage, age)
+    st.write(f'Predicted House Price: ${price:,.2f}')
