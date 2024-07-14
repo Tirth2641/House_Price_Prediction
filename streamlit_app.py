@@ -10,15 +10,10 @@ import numpy as np
 file_path = './data/house_price_prediction.csv'
 df = pd.read_csv(file_path)
 
-# Display the first few rows of the dataset (for debugging purposes)
-st.write("Dataset Preview:", df.head())
-
-# Check for missing values (for debugging purposes)
-st.write("Missing Values:", df.isnull().sum())
 
 # Features and target variable
 X = df[['num_bedrooms', 'num_bathrooms', 'square_footage', 'age_of_house']]
-y = df[['price']]  # Assuming the target column is named 'price'
+y = df[['house_price']]  # Assuming the target column is named 'price'
 
 # Split the data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
