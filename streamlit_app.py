@@ -34,7 +34,7 @@ model = joblib.load('house_price_model.pkl')
 # Function to predict house price using the model
 def predict_price(bedrooms, bathrooms, square_footage, age):
     features = np.array([[bedrooms, bathrooms, square_footage, age]])
-    price = model.predict(features)[0]
+    price = float(model.predict(features)[0])
     return price
 
 # Streamlit app
