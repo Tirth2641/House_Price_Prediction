@@ -1,8 +1,7 @@
-# :earth_americas: GDP dashboard template
+# :House Price predciton 
 
-A simple Streamlit app showing the GDP of different countries in the world.
+A simple Streamlit app predict house prices based on features like bedrooms, area, and location. Built with Streamlit for a simple, interactive user experience..
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gdp-dashboard-template.streamlit.app/)
 
 ### How to run it on your own machine
 
