@@ -1,4 +1,4 @@
-# House Price predciton 
+# House Price Prediciton 
 
 A simple Streamlit app predict house prices based on features like bedrooms, area, and location. Built with Streamlit for a simple, interactive user experience..
 
